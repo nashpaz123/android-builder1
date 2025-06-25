@@ -35,6 +35,10 @@ jobs:
           curl -L -o app.zip "${{ github.event.inputs.zip_url }}"
           unzip -q app.zip -d appdir
 
+      - name: Inject JitPack repository into all build.gradle.kts
+        run: |
+          find appdir -name "build.gradle.kts" -exec sed -i '/repositories {/a \ \ \ \ maven("https://jitpack.io")' {} +
+
       - name: List contents
         run: ls -R appdir
 
