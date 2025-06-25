@@ -1,67 +1,60 @@
-name: Android Builder Workflow
+name: Build Android
 
 on:
   workflow_dispatch:
     inputs:
       zip_url:
-        description: "GCS URL to zip file"
+        description: "URL to the .zip file (from GCS)"
         required: true
       webhook_url:
-        description: "Webhook to notify"
-        required: true
+        description: "Optional webhook to notify"
+        required: false
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y unzip openjdk-17-jdk wget
+      - name: Checkout current repo
+        uses: actions/checkout@v4
 
-      - name: Download zip from GCS
+      - name: Install required tools
         run: |
-          curl -o app.zip "${{ github.event.inputs.zip_url }}"
-          unzip app.zip -d appdir
+          sudo apt-get update
+          sudo apt-get install -y unzip openjdk-17-jdk
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Download ZIP from GCS
+        run: |
+          echo "Downloading ZIP: ${{ github.event.inputs.zip_url }}"
+          curl -L -o app.zip "${{ github.event.inputs.zip_url }}"
+          unzip -q app.zip -d appdir
+
+      - name: List contents
+        run: ls -R appdir
 
       - name: Build Android project
         working-directory: appdir
         run: |
           chmod +x ./gradlew || true
-          ./gradlew build > ../build.log || echo "BUILD_FAILED=true" >> $GITHUB_ENV
+          ./gradlew build --no-daemon
 
-      - name: Upload log to GCS
-        run: |
-          echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" | base64 --decode > key.json
-          gcloud auth activate-service-account --key-file=key.json
-          gsutil cp build.log gs://android-builder1-logs/${{ github.run_id }}.log
-          gsutil acl ch -u AllUsers:R gs://android-builder1-logs/${{ github.run_id }}.log
-          echo "https://storage.googleapis.com/android-builder1-logs/${{ github.run_id }}.log" > log_url.txt
+      - name: Upload APK(s) as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-apks
+          path: |
+            appdir/**/build/outputs/apk/**/*.apk
 
       - name: Notify webhook
+        if: github.event.inputs.webhook_url != ''
         run: |
-          status="success"
-          if [[ "${{ env.BUILD_FAILED }}" == "true" ]]; then
-            status="failure"
-          fi
           curl -X POST -H "Content-Type: application/json" \
-            -d "{\"build_status\": \"$status\", \"log_url\": \"$(cat log_url.txt)\"}" \
+            -d '{"status": "success", "zip_url": "${{ github.event.inputs.zip_url }}"}' \
             "${{ github.event.inputs.webhook_url }}"
-
-      - name: Deploy to GCP demo environment
-        if: env.BUILD_FAILED != 'true'
-        working-directory: appdir
-        run: |
-          echo "Deploying APK to GCP..."
-          APK_PATH=$(find . -type f -name "*release*.apk" | head -n 1)
-          if [[ -z "$APK_PATH" ]]; then
-            APK_PATH=$(find . -type f -name "*.apk" | head -n 1)
-          fi
-          if [[ -z "$APK_PATH" ]]; then
-            echo "No APK found. Skipping deployment." && exit 1
-          fi
-          gsutil cp "$APK_PATH" gs://android-builder1-deploy/${{ github.run_id }}/app.apk
-          gsutil acl ch -u AllUsers:R gs://android-builder1-deploy/${{ github.run_id }}/app.apk
-          echo "Deployed APK URL: https://storage.googleapis.com/android-builder1-deploy/${{ github.run_id }}/app.apk"
 
