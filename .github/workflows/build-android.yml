@@ -67,3 +67,4 @@ jobs:
           curl -X POST -H "Content-Type: application/json" \
             -d '{"status": "success", "zip_url": "${{ github.event.inputs.zip_url }}"}' \
             "${{ github.event.inputs.webhook_url }}"
+
