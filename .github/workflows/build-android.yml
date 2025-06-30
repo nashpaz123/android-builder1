@@ -35,18 +35,24 @@ jobs:
           curl -L -o app.zip "${{ github.event.inputs.zip_url }}"
           unzip -q app.zip -d appdir
 
-      - name: Inject JitPack repository into all build.gradle.kts
+      - name: Create Gradle init script for JitPack
         run: |
-          find appdir -name "build.gradle.kts" -exec sed -i '/repositories {/a \ \ \ \ maven("https://jitpack.io")' {} +
+          cat <<EOF > jitpack-init.gradle.kts
+          allprojects {
+              repositories {
+                  maven("https://jitpack.io")
+              }
+          }
+          EOF
 
       - name: List contents
         run: ls -R appdir
 
-      - name: Build Android project
+      - name: Build Android project using init script
         working-directory: appdir/Simple-Calculator-master
         run: |
           chmod +x ./gradlew || true
-          ./gradlew build --no-daemon
+          ./gradlew build --no-daemon --init-script ../../jitpack-init.gradle.kts
 
       - name: Upload APK(s) as artifact
         uses: actions/upload-artifact@v4
@@ -61,4 +67,3 @@ jobs:
           curl -X POST -H "Content-Type: application/json" \
             -d '{"status": "success", "zip_url": "${{ github.event.inputs.zip_url }}"}' \
             "${{ github.event.inputs.webhook_url }}"
-
