@@ -1,6 +1,10 @@
 # 📦 Android Builder via GCS Triggered Cloud Function
 
-This project enables an end-to-end automation pipeline that builds Android projects triggered by uploading a ZIP file to a Google Cloud Storage (GCS) bucket.
+This project enables an end-to-end automation pipeline that builds Android projects triggered by uploading apk Pfile to a Google Cloud Storage (GCS) bucket.
+
+The output is available in the github action pipe: https://github.com/nashpaz123/android-builder1/actions/workflows/build-android.yml 
+and links are also available at https://webhook.site/#!/view/78af9619-ca86-42f2-8872-001629e2ab9a/2d407350-2832-4eeb-9b00-7fef3cc82a15/1
+To install you may download the file published at release_apk_url (e.g https://storage.googleapis.com/android-builder1-deploy/yetCalc-2025-06-30-18-53/signed-app.apk )
 
 ## 🚀 Overview
 
