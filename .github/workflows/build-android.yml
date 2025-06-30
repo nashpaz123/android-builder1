@@ -61,6 +61,9 @@ jobs:
       - name: Generate timestamp
         id: timestamp
         run: |
+          sed -i 's/4<com.google.android.material.button.MaterialButton/<com.google.android.material.button.MaterialButton/' app/src/main/res/layout-sw447dp/activity_program_calc.xml
+          sed -i 's|<string name="secondmodetext"\([^>]*\)>2nd</string>|<string name="secondmodetext"\1 translatable="false">2nd</string>|' app/src/main/res/values/strings.xml
+          sed -i 's|<string name="text_res">textres</string>|<string name="text_res" translatable="false">textres</string>|' app/src/main/res/values/strings.xml
           TIMESTAMP=$(date +%Y-%m-%d-%H-%M)
           echo "timestamp=$TIMESTAMP" >> "$GITHUB_OUTPUT"
 
