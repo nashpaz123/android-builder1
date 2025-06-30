@@ -3,8 +3,8 @@
 This project enables an end-to-end automation pipeline that builds Android projects triggered by uploading apk Pfile to a Google Cloud Storage (GCS) bucket.
 
 The output is available in the github action pipe: https://github.com/nashpaz123/android-builder1/actions/workflows/build-android.yml 
-and links are also available at  <a href="https://webhook.site/#!/edit/78af9619-ca86-42f2-8872-001629e2ab9a"> POST events with status success in Webhook.site</a>. 
-To install you may download the file published at release_apk_url (e.g https://storage.googleapis.com/android-builder1-deploy/yetCalc-2025-06-30-18-53/signed-app.apk )
+and links are also available at  <a href="https://webhook.site/#!/view/78af9619-ca86-42f2-8872-001629e2ab9a"> POST events with status success in Webhook.site</a>. 
+To install download the file published at release_apk_url (e.g https://storage.googleapis.com/android-builder1-deploy/yetCalc-2025-06-30-18-53/signed-app.apk ) on android.
 
 ## 🚀 Overview
 
