@@ -89,9 +89,9 @@ Upload your zipped Android project:
 
 ```bash
 #the project is meant to builds the code from:
-wget https://github.com/SimpleMobileTools/Simple-Calculator/archive/refs/heads/master.zip -O simple-calculator.zip
+wget -O yetcalc.zip https://github.com/Yet-Zio/yetCalc/archive/refs/heads/main.zip
 #but basically runs ./gradlew build so can be used with any gradle project 
-gsutil cp simple-calculator.zip gs://android-builder1-inputs/simple-calculator-$(date +%s).zip
+gsutil cp yetcalc.zip gs://android-builder1-inputs/yetcalc-$(date +%s).zip
 ```
 This will trigger the Cloud Function and dispatch the GitHub workflow. see https://webhook.site/78af9619-ca86-42f2-8872-001629e2ab9a and the webhook events at https://webhook.site/#!/view/78af9619-ca86-42f2-8872-001629e2ab9a/aa44aa01-4169-4f3a-b847-b2779290d9be/1
 
