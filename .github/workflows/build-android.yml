@@ -48,6 +48,7 @@ jobs:
       - name: Build Android project
         working-directory: ${{ steps.gradle-dir.outputs.gradle_dir }}
         run: |
+          sed -i 's/4<com.google.android.material.button.MaterialButton/<com.google.android.material.button.MaterialButton/' app/src/main/res/layout-sw447dp/activity_program_calc.xml
           chmod +x ./gradlew
           ./gradlew build --no-daemon --stacktrace
 
