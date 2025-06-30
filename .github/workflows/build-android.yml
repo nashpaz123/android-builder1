@@ -54,25 +54,48 @@ jobs:
           chmod +x ./gradlew
           ./gradlew build --no-daemon --stacktrace
 
+      - name: Find APKs
+        id: find-apks
+        run: |
+          RELEASE_APK=$(find appdir/yetCalc-main/app/build/outputs/apk -name "app-release-unsigned.apk" | head -n 1)
+          echo "release_apk=$RELEASE_APK" >> "$GITHUB_OUTPUT"
+          DEBUG_APK=$(find appdir/yetCalc-main/app/build/outputs/apk -name "app-debug.apk" | head -n 1)
+          echo "debug_apk=$DEBUG_APK" >> "$GITHUB_OUTPUT"
+
+      - name: Generate timestamp
+        id: timestamp
+        run: |
+          TIMESTAMP=$(date +%Y-%m-%d-%H-%M)
+          echo "timestamp=$TIMESTAMP" >> "$GITHUB_OUTPUT"
+
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
 
-      - name: Upload APK to Google Cloud Storage
-        id: upload-apk
+      - name: Upload release APK to Google Cloud Storage
+        id: upload-release-apk
         uses: google-github-actions/upload-cloud-storage@v2
         with:
-          path: appdir/yetCalc-main/app/build/outputs/apk/debug/app-debug.apk
-          destination: android-builder1-deploy/yetCalc-${{ github.sha }}.apk
-          public: true
+          path: ${{ steps.find-apks.outputs.release_apk }}
+          destination: android-builder1-deploy/yetCalc-${{ steps.timestamp.outputs.timestamp }}/app-release-unsigned.apk
+          predefinedAcl: publicRead
 
-      - name: Set APK URL as environment variable
+      - name: Upload debug APK to Google Cloud Storage
+        id: upload-debug-apk
+        uses: google-github-actions/upload-cloud-storage@v2
+        with:
+          path: ${{ steps.find-apks.outputs.debug_apk }}
+          destination: android-builder1-deploy/yetCalc-${{ steps.timestamp.outputs.timestamp }}/app-debug.apk
+          predefinedAcl: publicRead
+
+      - name: Set APK URLs as environment variables
         run: |
-          echo "APK_URL=https://storage.googleapis.com/android-builder1-deploy/yetCalc-${{ github.sha }}.apk" >> $GITHUB_ENV
+          echo "RELEASE_APK_URL=https://storage.googleapis.com/android-builder1-deploy/yetCalc-${{ steps.timestamp.outputs.timestamp }}/app-release-unsigned.apk" >> $GITHUB_ENV
+          echo "DEBUG_APK_URL=https://storage.googleapis.com/android-builder1-deploy/yetCalc-${{ steps.timestamp.outputs.timestamp }}/app-debug.apk" >> $GITHUB_ENV
 
       - name: Notify webhook
         run: |
           curl -X POST -H "Content-Type: application/json" \
-            -d "{\"message\": \"Build completed for yetCalc commit ${{ github.sha }}. APK available at: ${{ env.APK_URL }}\"}" \
+            -d "{\"status\": \"success\", \"zip_url\": \"${{ github.event.inputs.zip_url }}\", \"commit_sha\": \"${{ github.sha }}\", \"release_apk_url\": \"${{ env.RELEASE_APK_URL }}\", \"debug_apk_url\": \"${{ env.DEBUG_APK_URL }}\"}" \
             ${{ secrets.WEBHOOK_URL }}
