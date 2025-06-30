@@ -54,17 +54,25 @@ jobs:
           chmod +x ./gradlew
           ./gradlew build --no-daemon --stacktrace
 
-      - name: Upload APK(s) as artifact
-        uses: actions/upload-artifact@v4
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          name: built-apks
-          path: |
-            ${{ steps.gradle-dir.outputs.gradle_dir }}/app/build/outputs/apk/**/*.apk
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Upload APK to Google Cloud Storage
+        id: upload-apk
+        uses: google-github-actions/upload-cloud-storage@v2
+        with:
+          path: appdir/yetCalc-main/app/build/outputs/apk/debug/app-debug.apk
+          destination: android-builder1-deploy/yetCalc-${{ github.sha }}.apk
+          public: true
+
+      - name: Set APK URL as environment variable
+        run: |
+          echo "APK_URL=https://storage.googleapis.com/android-builder1-deploy/yetCalc-${{ github.sha }}.apk" >> $GITHUB_ENV
 
       - name: Notify webhook
-        if: github.event.inputs.webhook_url != ''
         run: |
           curl -X POST -H "Content-Type: application/json" \
-            -d '{"status": "success", "zip_url": "${{ github.event.inputs.zip_url }}"}' \
-            "${{ github.event.inputs.webhook_url }}"
-
+            -d "{\"message\": \"Build completed for yetCalc commit ${{ github.sha }}. APK available at: ${{ env.APK_URL }}\"}" \
+            ${{ secrets.WEBHOOK_URL }}
