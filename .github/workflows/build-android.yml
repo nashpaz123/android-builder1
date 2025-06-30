@@ -78,7 +78,7 @@ jobs:
         uses: google-github-actions/upload-cloud-storage@v2
         with:
           path: ${{ steps.find-apks.outputs.release_apk }}
-          destination: android-builder1-deploy/yetCalc-${{ steps.timestamp.outputs.timestamp }}/app-release-unsigned.apk
+          destination: android-builder1-deploy/yetCalc-${{ steps.timestamp.outputs.timestamp }}
           predefinedAcl: publicRead
 
       - name: Upload debug APK to Google Cloud Storage
@@ -86,7 +86,7 @@ jobs:
         uses: google-github-actions/upload-cloud-storage@v2
         with:
           path: ${{ steps.find-apks.outputs.debug_apk }}
-          destination: android-builder1-deploy/yetCalc-${{ steps.timestamp.outputs.timestamp }}/app-debug.apk
+          destination: android-builder1-deploy/yetCalc-${{ steps.timestamp.outputs.timestamp }}
           predefinedAcl: publicRead
 
       - name: Set APK URLs as environment variables
