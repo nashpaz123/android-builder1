@@ -1,70 +1,51 @@
-name: Build Android
+name: Build yetCalc
 
 on:
   workflow_dispatch:
     inputs:
       zip_url:
-        description: "URL to the .zip file (from GCS)"
-        required: true
+        description: "URL to .zip or use checkout"
+        required: false
       webhook_url:
-        description: "Optional webhook to notify"
+        description: "Optional webhook URL"
         required: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout current repo
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install required tools
+      - name: Install tools
         run: |
           sudo apt-get update
           sudo apt-get install -y unzip openjdk-17-jdk
 
-      - name: Set up JDK
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: temurin
+          java-version: 17
 
-      - name: Download ZIP from GCS
-        run: |
-          echo "Downloading ZIP: ${{ github.event.inputs.zip_url }}"
-          curl -L -o app.zip "${{ github.event.inputs.zip_url }}"
-          unzip -q app.zip -d appdir
+      - name: Cache Gradle
+        uses: gradle/gradle-build-action@v3
+        with:
+          cache-name: gradle-cache
 
-      - name: Create Gradle init script for JitPack
-        run: |
-          cat <<EOF > jitpack-init.gradle.kts
-          allprojects {
-              repositories {
-                  maven("https://jitpack.io")
-              }
-          }
-          EOF
+      - name: Build Android App
+        run: ./gradlew build --no-daemon --stacktrace
 
-      - name: List contents
-        run: ls -R appdir
-
-      - name: Build Android project using init script
-        working-directory: appdir/Simple-Calculator-master
-        run: |
-          chmod +x ./gradlew || true
-          ./gradlew build --no-daemon --init-script ../../jitpack-init.gradle.kts
-
-      - name: Upload APK(s) as artifact
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: built-apks
+          name: yetCalc-apks
           path: |
-            appdir/Simple-Calculator-master/app/build/outputs/apk/**/*.apk
+            app/build/outputs/**/*.apk
 
       - name: Notify webhook
-        if: github.event.inputs.webhook_url != ''
+        if: ${{ github.event.inputs.webhook_url != '' }}
         run: |
           curl -X POST -H "Content-Type: application/json" \
-            -d '{"status": "success", "zip_url": "${{ github.event.inputs.zip_url }}"}' \
+            -d '{"status":"success"}' \
             "${{ github.event.inputs.webhook_url }}"
-
