@@ -1,51 +1,67 @@
-name: Build yetCalc
+name: Build Android
 
 on:
   workflow_dispatch:
     inputs:
       zip_url:
-        description: "URL to .zip or use checkout"
-        required: false
+        description: "URL to the .zip file (from GCS or GitHub)"
+        required: true
       webhook_url:
-        description: "Optional webhook URL"
+        description: "Optional webhook to notify"
         required: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout this repo (required for Actions context)
         uses: actions/checkout@v4
 
-      - name: Install tools
+      - name: Install required tools
         run: |
           sudo apt-get update
           sudo apt-get install -y unzip openjdk-17-jdk
 
-      - name: Setup Java
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 17
+          distribution: 'temurin'
+          java-version: '17'
 
-      - name: Cache Gradle
-        uses: gradle/gradle-build-action@v3
-        with:
-          cache-name: gradle-cache
+      - name: Download ZIP from URL
+        run: |
+          echo "Downloading ZIP from ${{ github.event.inputs.zip_url }}"
+          curl -L -o app.zip "${{ github.event.inputs.zip_url }}"
+          unzip -q app.zip -d appdir
 
-      - name: Build Android App
-        run: ./gradlew build --no-daemon --stacktrace
+      - name: Detect gradlew location
+        id: gradle-dir
+        run: |
+          dir=$(find appdir -type f -name 'gradlew' -exec dirname {} \; | head -n 1)
+          echo "Detected gradle directory: $dir"
+          echo "gradle_dir=$dir" >> "$GITHUB_OUTPUT"
 
-      - name: Upload APKs
+      - name: List contents
+        run: ls -R appdir
+
+      - name: Build Android project
+        working-directory: ${{ steps.gradle-dir.outputs.gradle_dir }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew build --no-daemon --stacktrace
+
+      - name: Upload APK(s) as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: yetCalc-apks
+          name: built-apks
           path: |
-            app/build/outputs/**/*.apk
+            ${{ steps.gradle-dir.outputs.gradle_dir }}/app/build/outputs/apk/**/*.apk
 
       - name: Notify webhook
-        if: ${{ github.event.inputs.webhook_url != '' }}
+        if: github.event.inputs.webhook_url != ''
         run: |
           curl -X POST -H "Content-Type: application/json" \
-            -d '{"status":"success"}' \
+            -d '{"status": "success", "zip_url": "${{ github.event.inputs.zip_url }}"}' \
             "${{ github.event.inputs.webhook_url }}"
+
